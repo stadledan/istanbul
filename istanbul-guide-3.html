@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>İstanbul · Reiseführer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --ink:#23211c; --ink-soft:#5b554a;
+  --cream:#f8f1e3; --paper:#fffaf0;
+  --teal:#0e5a63; --teal-dk:#08363c;
+  --terra:#bd4f2a; --terra-dk:#8f3a1e;
+  --gold:#c8a24c; --gold-dk:#9c7a2c;
+  --rose:#a83246;
+  --line:rgba(35,33,28,.12);
+  --shadow:0 18px 50px -20px rgba(8,54,60,.45);
+  --maxw:1100px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Manrope',system-ui,sans-serif;color:var(--ink);background:var(--cream);line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{color:inherit}
+button{font-family:inherit}
+
+.tile-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.045;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 90 90'%3E%3Cg fill='none' stroke='%23083640' stroke-width='1.4'%3E%3Ccircle cx='45' cy='45' r='10'/%3E%3Cpath d='M45 20c6 9 6 16 0 25-6-9-6-16 0-25zM45 70c-6-9-6-16 0-25 6 9 6 16 0 25zM20 45c9-6 16-6 25 0-9 6-16 6-25 0zM70 45c-9 6-16 6-25 0 9-6 16-6 25 0z'/%3E%3Ccircle cx='0' cy='0' r='4'/%3E%3Ccircle cx='90' cy='0' r='4'/%3E%3Ccircle cx='0' cy='90' r='4'/%3E%3Ccircle cx='90' cy='90' r='4'/%3E%3C/g%3E%3C/svg%3E")}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;background:rgba(248,241,227,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:var(--maxw);margin:0 auto;display:flex;align-items:center;gap:14px;padding:11px 18px}
+.brand{font-family:'Fraunces',serif;font-weight:700;font-size:1.25rem;letter-spacing:.5px;color:var(--teal-dk);white-space:nowrap}
+.brand .dot{color:var(--terra)}
+.nav-links{display:flex;gap:6px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{font-size:.82rem;font-weight:700;text-decoration:none;color:var(--ink-soft);padding:7px 12px;border-radius:999px;white-space:nowrap;transition:.2s}
+.nav-links a:hover{background:var(--teal);color:#fff}
+
+/* HERO */
+.hero{position:relative;z-index:1;min-height:92svh;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(165deg,#0a3a44 0%,#0e5a63 38%,#bd4f2a 100%);overflow:hidden}
+.hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,54,60,.25) 0%,rgba(8,54,60,.08) 40%,rgba(8,54,60,.74) 100%)}
+.hero-skyline{position:absolute;left:0;right:0;bottom:-1px;width:100%;z-index:2;opacity:.95}
+.hero-in{position:relative;z-index:3;max-width:var(--maxw);margin:0 auto;width:100%;padding:0 22px 9vh;color:#fff}
+.kicker{display:inline-flex;align-items:center;gap:10px;font-size:.72rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--gold);background:rgba(8,54,60,.4);border:1px solid rgba(200,162,76,.45);padding:7px 14px;border-radius:999px;backdrop-filter:blur(4px)}
+.hero h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(3.4rem,17vw,7rem);line-height:.92;margin:.28em 0 .12em;text-shadow:0 4px 30px rgba(0,0,0,.35)}
+.hero .sub{font-family:'Fraunces',serif;font-style:italic;font-weight:500;font-size:clamp(1.1rem,4.6vw,1.6rem);opacity:.95;max-width:30ch}
+.hero .meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px}
+.hero .meta span{font-size:.78rem;font-weight:700;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:6px 12px;border-radius:999px;backdrop-filter:blur(4px)}
+
+/* LAYOUT */
+section{position:relative;z-index:1}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+.block{padding:64px 0}
+.sec-head{margin-bottom:28px}
+.sec-tag{font-size:.74rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--terra)}
+.sec-head h2{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(2rem,7vw,3rem);line-height:1.04;color:var(--teal-dk);margin:.16em 0 .25em}
+.sec-head p{color:var(--ink-soft);max-width:62ch;font-size:1.02rem}
+
+/* distance badge */
+.dist{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:800;color:var(--teal-dk);background:rgba(14,90,99,.1);border:1px solid rgba(14,90,99,.2);padding:5px 10px;border-radius:999px;white-space:nowrap}
+.dist svg{width:12px;height:12px;flex-shrink:0;fill:var(--teal)}
+
+/* WELCOME */
+.welcome{background:linear-gradient(180deg,var(--paper),var(--cream));border-bottom:1px solid var(--line)}
+.welcome-card{background:var(--paper);border:1px solid var(--line);border-radius:24px;padding:30px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.welcome-card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--teal),var(--gold),var(--terra))}
+.welcome-card p{font-family:'Fraunces',serif;font-size:clamp(1.12rem,4.3vw,1.45rem);line-height:1.55;color:var(--ink)}
+.welcome-card .hint{font-family:'Manrope',sans-serif;font-size:.95rem;color:var(--ink-soft);margin-top:14px;line-height:1.5}
+.welcome-card .hint b{color:var(--terra)}
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:24px}
+.fact{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+.fact .l{font-size:.68rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold-dk)}
+.fact .v{font-weight:700;color:var(--teal-dk);margin-top:3px;font-size:.96rem}
+
+/* MAP */
+.map-section{background:var(--teal-dk);color:var(--cream)}
+.map-section .sec-tag{color:var(--gold)}
+.map-section .sec-head h2{color:#fff}
+.map-section .sec-head p{color:rgba(248,241,227,.78)}
+.map-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.filt{font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid rgba(248,241,227,.3);background:transparent;color:var(--cream);padding:8px 15px;border-radius:999px;transition:.2s}
+.filt.active{background:var(--gold);color:var(--teal-dk);border-color:var(--gold)}
+#map{height:64svh;min-height:440px;width:100%;border-radius:22px;border:3px solid var(--gold);box-shadow:var(--shadow);background:#0a3a44}
+.map-note{font-size:.82rem;color:rgba(248,241,227,.7);margin-top:12px}
+.map-legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:.82rem;font-weight:600}
+.map-legend span{display:inline-flex;align-items:center;gap:7px}
+.dotk{width:13px;height:13px;border-radius:50%;display:inline-block;border:2px solid #fff}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{font-family:'Manrope',sans-serif;margin:13px 15px;min-width:170px}
+.pop-t{font-family:'Fraunces',serif;font-weight:700;font-size:1.05rem;color:var(--teal-dk);display:block;margin-bottom:5px}
+.pop-d{margin-bottom:9px}
+.pop-btns{display:flex;gap:7px;flex-wrap:wrap}
+.pop-btns button,.pop-btns a{font-size:.76rem;font-weight:800;border-radius:999px;padding:6px 12px;cursor:pointer;text-decoration:none;border:1.5px solid var(--teal);color:var(--teal);background:#fff;transition:.15s}
+.pop-btns .pri{background:var(--teal);color:#fff}
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 5px 12px rgba(0,0,0,.4);border:2.5px solid #fff;position:relative}
+.pin::after{content:"";position:absolute;top:50%;left:50%;width:8px;height:8px;background:#fff;border-radius:50%;transform:translate(-50%,-50%)}
+.pin.hotel{width:36px;height:36px;animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 5px 12px rgba(0,0,0,.4),0 0 0 0 rgba(200,162,76,.6)}70%{box-shadow:0 5px 12px rgba(0,0,0,.4),0 0 0 14px rgba(200,162,76,0)}100%{box-shadow:0 5px 12px rgba(0,0,0,.4),0 0 0 0 rgba(200,162,76,0)}}
+
+/* FOOD */
+.food{background:linear-gradient(180deg,var(--cream),var(--paper))}
+.dish-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.dish{position:relative;border-radius:20px;overflow:hidden;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;color:#fff;box-shadow:var(--shadow);cursor:pointer;isolation:isolate;border:0;text-align:left;transition:transform .2s}
+.dish:hover{transform:translateY(-3px)}
+.dish .ph{position:absolute;inset:0;z-index:-2;background:var(--g)}
+.dish .ph img{width:100%;height:100%;object-fit:cover}
+.dish::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,0) 28%,rgba(0,0,0,.68))}
+.dish h3{font-family:'Fraunces',serif;font-weight:600;font-size:1.24rem;line-height:1.05}
+.dish p{font-size:.82rem;opacity:.95;margin-top:3px}
+.dish .star{position:absolute;top:11px;left:11px;font-size:.64rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase;background:var(--gold);color:var(--teal-dk);padding:4px 9px;border-radius:999px}
+.dish .more{position:absolute;top:11px;right:11px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.25);backdrop-filter:blur(4px);display:grid;place-items:center;font-size:1rem;font-weight:700}
+
+/* RESTAURANTS / SIGHTS shared card */
+.rests{background:var(--paper)}
+.sights{background:linear-gradient(180deg,var(--paper),var(--cream))}
+.rgrid{display:grid;gap:14px;grid-template-columns:1fr}
+.card{cursor:pointer;background:var(--cream);border:1px solid var(--line);border-radius:18px;padding:0;overflow:hidden;transition:.2s;display:flex;flex-direction:column;text-align:left}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.card-img{position:relative;aspect-ratio:16/10;background:linear-gradient(135deg,var(--teal),var(--teal-dk));overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:cover}
+.card-img .num{position:absolute;top:10px;left:12px;font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:#fff;background:rgba(8,54,60,.7);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;backdrop-filter:blur(3px)}
+.card-img .dist{position:absolute;bottom:10px;right:10px;background:rgba(255,250,240,.94)}
+.card-body{padding:15px 16px 17px;flex:1;display:flex;flex-direction:column}
+.card .top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.card h3{font-family:'Fraunces',serif;font-weight:600;font-size:1.2rem;color:var(--teal-dk)}
+.card .area{font-size:.7rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--gold-dk);background:rgba(200,162,76,.16);padding:3px 9px;border-radius:999px}
+.card .for{font-size:.78rem;font-weight:800;color:var(--terra);margin-top:5px}
+.card .desc{font-size:.9rem;color:var(--ink-soft);margin-top:5px}
+.card .open{margin-top:auto;padding-top:11px;font-size:.76rem;font-weight:800;color:var(--teal);display:inline-flex;align-items:center;gap:5px}
+
+.tip-near{background:rgba(14,90,99,.08);border-left:4px solid var(--teal);border-radius:10px;padding:13px 15px;margin-bottom:18px;font-size:.93rem}
+.tip-near b{color:var(--teal-dk)}
+
+/* ITINERARY */
+.plans{background:var(--teal-dk);color:var(--cream)}
+.plans .sec-tag{color:var(--gold)}
+.plans .sec-head h2{color:#fff}
+.plans .sec-head p{color:rgba(248,241,227,.8)}
+.day{background:rgba(255,255,255,.05);border:1px solid rgba(248,241,227,.16);border-radius:20px;padding:22px;margin-bottom:16px}
+.day .dh{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.day .dnum{font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--gold);width:46px;height:46px;border-radius:50%;border:2px solid var(--gold);display:grid;place-items:center;flex-shrink:0}
+.day h3{font-family:'Fraunces',serif;font-weight:600;font-size:1.35rem;color:#fff}
+.day .theme{font-size:.78rem;color:var(--gold);font-weight:700}
+.steps{list-style:none}
+.steps li{display:flex;gap:14px;padding:9px 0;border-bottom:1px dashed rgba(248,241,227,.14);font-size:.94rem}
+.steps li:last-child{border-bottom:0}
+.steps .t{font-weight:800;color:var(--gold);min-width:62px;font-size:.84rem;padding-top:1px}
+.steps .x b{color:#fff}.steps .x span{color:rgba(248,241,227,.7)}
+
+/* TIPS */
+.tips{background:linear-gradient(180deg,var(--cream),var(--paper))}
+.tgrid{display:grid;gap:14px;grid-template-columns:1fr}
+.tip{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;gap:14px;align-items:flex-start}
+.tip .ti{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--gold),var(--gold-dk));display:grid;place-items:center;margin-top:2px}
+.tip .ti svg{width:16px;height:16px;fill:#fff}
+.tip h3{font-family:'Fraunces',serif;font-weight:600;font-size:1.1rem;color:var(--teal-dk);margin-bottom:3px}
+.tip p{font-size:.91rem;color:var(--ink-soft)}.tip p b{color:var(--terra)}
+
+/* PHRASES */
+.phrases{background:var(--terra);color:#fff}
+.phrases .sec-tag{color:#ffe2c4}.phrases .sec-head h2{color:#fff}
+.pgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.ph{background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:14px}
+.ph .tr{font-family:'Fraunces',serif;font-weight:700;font-size:1.16rem}
+.ph .de{font-size:.85rem;opacity:.9;margin-top:2px}
+.ph .pr{font-size:.74rem;opacity:.7;font-style:italic;margin-top:4px}
+
+/* FOOTER */
+footer{background:var(--teal-dk);color:rgba(248,241,227,.75);text-align:center;padding:46px 22px 60px}
+footer .fb{font-family:'Fraunces',serif;font-size:2rem;color:#fff}.footer .dot,footer .fb .dot{color:var(--terra)}
+footer p{font-size:.86rem;margin-top:8px;max-width:48ch;margin-left:auto;margin-right:auto}
+footer .src{font-size:.72rem;opacity:.5;margin-top:18px}
+
+/* MODAL */
+.modal{position:fixed;inset:0;z-index:2000;display:none;align-items:flex-end;justify-content:center}
+.modal.open{display:flex}
+.modal-bg{position:absolute;inset:0;background:rgba(8,54,60,.55);backdrop-filter:blur(4px);animation:fade .25s ease}
+.modal-card{position:relative;background:var(--paper);width:100%;max-width:560px;max-height:92svh;overflow-y:auto;border-radius:26px 26px 0 0;box-shadow:0 -10px 60px rgba(0,0,0,.4);animation:slideup .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes fade{from{opacity:0}}
+@keyframes slideup{from{transform:translateY(40px);opacity:.5}}
+.modal-close{position:absolute;top:14px;right:14px;z-index:5;width:38px;height:38px;border-radius:50%;border:0;background:rgba(8,54,60,.55);color:#fff;font-size:1.4rem;line-height:1;cursor:pointer;backdrop-filter:blur(4px)}
+.modal-img{position:relative;aspect-ratio:16/10;background:linear-gradient(135deg,var(--teal),var(--terra));overflow:hidden}
+.modal-img img{width:100%;height:100%;object-fit:cover}
+.modal-img .cap{position:absolute;bottom:9px;left:13px;font-size:.72rem;font-weight:700;color:#fff;background:rgba(8,54,60,.6);padding:4px 10px;border-radius:999px;backdrop-filter:blur(3px)}
+.modal-body{padding:22px}
+.modal-body .area{font-size:.72rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--gold-dk)}
+.modal-body h2{font-family:'Fraunces',serif;font-weight:600;font-size:1.7rem;color:var(--teal-dk);margin:3px 0 12px;line-height:1.05}
+.modal-body .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.modal-body .for{font-size:.86rem;font-weight:800;color:var(--terra);margin-bottom:10px}
+.modal-body p.txt{font-size:.98rem;color:var(--ink);line-height:1.6;margin-bottom:14px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.chips span{font-size:.76rem;font-weight:700;background:var(--cream);border:1px solid var(--line);padding:6px 11px;border-radius:8px;color:var(--ink-soft)}
+.chips span b{color:var(--teal-dk)}
+.best{background:rgba(189,79,42,.08);border:1px solid rgba(189,79,42,.2);border-radius:14px;padding:14px;margin-bottom:16px}
+.best .bl{font-size:.7rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--terra)}
+.best .bn{font-family:'Fraunces',serif;font-weight:600;font-size:1.15rem;color:var(--teal-dk);margin:2px 0 6px}
+.maps-btn{display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center;background:var(--teal);color:#fff;font-weight:800;font-size:.95rem;text-decoration:none;padding:14px;border-radius:14px;transition:.2s}
+.maps-btn:hover{background:var(--teal-dk)}
+.maps-btn svg{width:17px;height:17px;fill:#fff}
+
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+@media(min-width:680px){
+  .facts{grid-template-columns:repeat(4,1fr)}
+  .rgrid{grid-template-columns:1fr 1fr}
+  .tgrid{grid-template-columns:1fr 1fr}
+  .block{padding:84px 0}
+}
+@media(min-width:980px){.rgrid.three{grid-template-columns:repeat(3,1fr)}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+<div class="tile-bg"></div>
+
+<nav class="nav">
+  <div class="nav-in">
+    <span class="brand">İstanbul<span class="dot">.</span></span>
+    <div class="nav-links">
+      <a href="#karte">Karte</a>
+      <a href="#essen">Essen</a>
+      <a href="#restaurants">Restaurants</a>
+      <a href="#sehen">Sehen</a>
+      <a href="#plaene">Pläne</a>
+      <a href="#tipps">Tipps</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <img class="hero-photo" src="https://commons.wikimedia.org/wiki/Special:FilePath/The%20Blue%20Mosque.JPG?width=1600" alt="Istanbul" onerror="this.style.display='none'">
+  <svg class="hero-skyline" viewBox="0 0 1440 140" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#08363c" d="M0,140 L0,96 C40,96 50,90 60,84 L60,70 L66,70 L66,84 C76,90 88,96 120,96 L120,60 C120,44 132,32 148,32 C164,32 176,44 176,60 L176,96 C210,96 220,88 230,80 L230,40 L236,18 L242,40 L242,80 C252,88 262,96 300,96 L300,72 C300,52 316,38 336,38 C356,38 372,52 372,72 L372,96 C410,96 420,86 430,78 L430,44 L436,24 L442,44 L442,78 C452,86 470,96 520,96 L520,56 C520,38 536,24 556,24 C576,24 592,38 592,56 L592,96 C640,96 650,84 660,76 L660,34 L667,10 L674,34 L674,76 C690,86 705,96 760,96 L760,64 C760,46 776,32 796,32 C816,32 832,46 832,64 L832,96 C880,96 892,86 902,78 L902,42 L909,20 L916,42 L916,78 C930,88 950,96 1000,96 L1000,58 C1000,40 1016,26 1036,26 C1056,26 1072,40 1072,58 L1072,96 C1120,96 1130,86 1140,78 L1140,40 L1147,16 L1154,40 L1154,78 C1170,88 1190,96 1240,96 L1240,68 C1240,50 1254,38 1272,38 C1290,38 1304,50 1304,68 L1304,96 C1350,96 1370,90 1390,84 L1390,66 L1396,66 L1396,84 C1410,90 1420,96 1440,96 L1440,140 Z"/>
+  </svg>
+  <div class="hero-in">
+    <span class="kicker">Unser Reiseführer</span>
+    <h1>İstanbul</h1>
+    <p class="sub">Wo zwei Kontinente, tausend Aromen und Jahrtausende Geschichte aufeinandertreffen.</p>
+    <div class="meta">
+      <span>Ottoman Legacy Hotel · Sirkeci</span>
+      <span>Echtes türkisches Essen</span>
+      <span>Mit interaktiver Karte</span>
+    </div>
+  </div>
+</header>
+
+<section class="welcome block">
+  <div class="wrap">
+    <div class="welcome-card reveal">
+      <p>Gleich geht's los. Diese Seite ist unser persönlicher Reiseführer für İstanbul – mit den schönsten Orten, dem besten echten Essen (nicht das schickste, sondern das authentischste!) und allem Wichtigen auf einen Blick.</p>
+      <p class="hint">Tipp: Auf <b>jeden Eintrag</b> tippen – dann öffnen sich Fotos, Infos und die <b>Entfernung von unserem Hotel</b>.</p>
+    </div>
+    <div class="facts">
+      <div class="fact reveal"><div class="l">Unser Hotel</div><div class="v">Ottoman Legacy · Sirkeci</div></div>
+      <div class="fact reveal"><div class="l">Währung</div><div class="v">Türkische Lira (₺)</div></div>
+      <div class="fact reveal"><div class="l">Sprache</div><div class="v">Türkisch · „Merhaba"</div></div>
+      <div class="fact reveal"><div class="l">Notruf</div><div class="v">112</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="map-section block" id="karte">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Alles auf einen Blick</span>
+      <h2>Unsere Karte</h2>
+      <p>Alle Spots liegen ganz nah beieinander – das Hotel ist mittendrin in der Altstadt. Tippe auf einen Punkt: Du siehst die Entfernung vom Hotel, Details und kannst direkt die Route öffnen.</p>
+    </div>
+    <div class="map-filters reveal">
+      <button class="filt active" data-cat="all">Alles</button>
+      <button class="filt" data-cat="food">Essen</button>
+      <button class="filt" data-cat="sight">Sehenswürdigkeiten</button>
+      <button class="filt" data-cat="hotel">Hotel</button>
+    </div>
+    <div id="map"></div>
+    <div class="map-legend reveal">
+      <span><i class="dotk" style="background:#c8a24c"></i> Unser Hotel</span>
+      <span><i class="dotk" style="background:#bd4f2a"></i> Essen &amp; Restaurants</span>
+      <span><i class="dotk" style="background:#0e5a63"></i> Sehenswürdigkeiten</span>
+    </div>
+    <p class="map-note reveal">Tippe auf einen Punkt → es erscheint die Luftlinie zum Hotel. „Details" zeigt Fotos &amp; Infos.</p>
+  </div>
+</section>
+
+<section class="food block" id="essen">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Das Herzstück</span>
+      <h2>Was wir essen müssen</h2>
+      <p>İstanbul ist ein Paradies für alles, was du liebst. Tippe auf ein Gericht – dann siehst du genau, wie es aussieht, was drinsteckt und wo es am besten ist (inkl. Entfernung).</p>
+    </div>
+    <div class="dish-grid" id="dishGrid"></div>
+  </div>
+</section>
+
+<section class="rests block" id="restaurants">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Top of the Top</span>
+      <h2>Die besten Adressen</h2>
+      <p>Kein Touri-Schnickschnack – echtes, fantastisches türkisches Essen. Tippe für Fotos, Spezialitäten und die Entfernung vom Hotel. Die ersten Adressen sind zu Fuß erreichbar.</p>
+    </div>
+    <div class="tip-near reveal">Direkt neben dem Hotel liegt die <b>Hocapaşa-Gasse</b> in Sirkeci – eine kleine Fußgängerstraße voller Lokale. Perfekt für den ersten Abend.</div>
+    <div class="rgrid" id="restGrid"></div>
+  </div>
+</section>
+
+<section class="sights block" id="sehen">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Must-See</span>
+      <h2>Die schönsten Orte</h2>
+      <p>Fast alle Highlights liegen rund um unser Hotel – vieles ist zu Fuß machbar. Tippe für Fotos, Eintritt, Öffnungszeiten und die Entfernung. Tipp: früh morgens, dann ist es am leersten.</p>
+    </div>
+    <div class="rgrid three" id="sightGrid"></div>
+  </div>
+</section>
+
+<section class="plans block" id="plaene">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Ganz entspannt</span>
+      <h2>Vorschläge für die Tage</h2>
+      <p>Drei lockere Tagespläne ab dem Hotel – natürlich nur als Idee.</p>
+    </div>
+    <div class="day reveal">
+      <div class="dh"><div class="dnum">1</div><div><h3>Altstadt zu Fuß</h3><div class="theme">Die großen Klassiker · alles fußläufig</div></div></div>
+      <ul class="steps">
+        <li><span class="t">Vormittag</span><span class="x"><b>Gülhane-Park &amp; Topkapı-Palast</b> <span>– Sultanspalast mit Schatzkammer &amp; Bosporus-Blick.</span></span></li>
+        <li><span class="t">Mittag</span><span class="x"><b>Şehzade Cağ Kebap</b> <span>– in der Hocapaşa-Gasse, wenige Schritte vom Hotel.</span></span></li>
+        <li><span class="t">Nachmittag</span><span class="x"><b>Hagia Sophia</b> &amp; <b>Basilika-Zisterne</b> <span>– das Wunder &amp; die geheimnisvolle Unterwelt.</span></span></li>
+        <li><span class="t">Spätnach.</span><span class="x"><b>Blaue Moschee</b> <span>– gegenüber der Hagia Sophia, im weichen Abendlicht.</span></span></li>
+        <li><span class="t">Abend</span><span class="x"><b>Hamdi Restaurant</b> <span>– Kebap mit Blick aufs Goldene Horn.</span></span></li>
+      </ul>
+    </div>
+    <div class="day reveal">
+      <div class="dh"><div class="dnum">2</div><div><h3>Basare &amp; Bosporus</h3><div class="theme">Bummeln, schlemmen, Sonnenuntergang</div></div></div>
+      <ul class="steps">
+        <li><span class="t">Vormittag</span><span class="x"><b>Ägyptischer Gewürzbasar</b> <span>– wenige Minuten vom Hotel: Gewürze, Lokum, Tee.</span></span></li>
+        <li><span class="t">Spätvorm.</span><span class="x"><b>Süleymaniye-Moschee</b> <span>– die schönste Moschee mit traumhaftem Ausblick.</span></span></li>
+        <li><span class="t">Mittag</span><span class="x"><b>Großer Basar</b> <span>– 4.000 Läden; dazwischen ein Lahmacun.</span></span></li>
+        <li><span class="t">Nachmittag</span><span class="x"><b>Galata-Brücke</b> <span>– Balık Ekmek bei den Anglern, dann nach Beyoğlu.</span></span></li>
+        <li><span class="t">Sonnenunt.</span><span class="x"><b>Galata-Turm</b> <span>– Panorama über die ganze Stadt.</span></span></li>
+        <li><span class="t">Abend</span><span class="x"><b>Zübeyir Ocakbaşı</b> <span>– am Grill sitzen, bester Kuzu Şiş &amp; Adana.</span></span></li>
+      </ul>
+    </div>
+    <div class="day reveal">
+      <div class="dh"><div class="dnum">3</div><div><h3>Asiatische Seite</h3><div class="theme">Mit der Fähre nach Kadıköy</div></div></div>
+      <ul class="steps">
+        <li><span class="t">Vormittag</span><span class="x"><b>Fähre ab Eminönü</b> <span>– direkt am Hotel; herrliche Fahrt über den Bosporus.</span></span></li>
+        <li><span class="t">Mittag</span><span class="x"><b>Çiya Sofrası, Kadıköy</b> <span>– echte anatolische Küche &amp; Meze, dazu der bunte Markt.</span></span></li>
+        <li><span class="t">Nachmittag</span><span class="x"><b>Kadıköy bummeln</b> <span>– Cafés &amp; Süßes.</span></span></li>
+        <li><span class="t">Abend</span><span class="x"><b>Meyhane</b> (Giritli od. Karaköy Lokantası) <span>– gemütlich, Meze für Meze.</span></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="tips block" id="tipps">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Gut zu wissen</span>
+      <h2>Praktische Tipps</h2>
+      <p>Damit alles entspannt läuft – das Wichtigste kurz und knapp.</p>
+    </div>
+    <div class="tgrid" id="tipGrid"></div>
+  </div>
+</section>
+
+<section class="phrases block">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">Ein paar Worte</span><h2>Türkisch für den Alltag</h2></div>
+    <div class="pgrid">
+      <div class="ph reveal"><div class="tr">Merhaba</div><div class="de">Hallo</div><div class="pr">mer-ha-ba</div></div>
+      <div class="ph reveal"><div class="tr">Teşekkürler</div><div class="de">Danke</div><div class="pr">te-schek-kür-ler</div></div>
+      <div class="ph reveal"><div class="tr">Lütfen</div><div class="de">Bitte</div><div class="pr">lüt-fen</div></div>
+      <div class="ph reveal"><div class="tr">Evet / Hayır</div><div class="de">Ja / Nein</div><div class="pr">e-wet / ha-jır</div></div>
+      <div class="ph reveal"><div class="tr">Afiyet olsun</div><div class="de">Guten Appetit</div><div class="pr">a-fi-jet ol-sun</div></div>
+      <div class="ph reveal"><div class="tr">Ne kadar?</div><div class="de">Wie viel kostet das?</div><div class="pr">ne ka-dar</div></div>
+      <div class="ph reveal"><div class="tr">Çok güzel</div><div class="de">Sehr schön / lecker</div><div class="pr">tschok gü-sel</div></div>
+      <div class="ph reveal"><div class="tr">Elinize sağlık</div><div class="de">Lob an die Küche</div><div class="pr">e-li-ni-se sa-lık</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fb">İstanbul<span class="dot">.</span></div>
+  <p>Unser kleiner Reiseführer – zusammengestellt mit ganz viel Vorfreude. Görüşürüz, İstanbul!</p>
+  <p class="src">Fotos: Wikimedia Commons · Karte: © OpenStreetMap, © CARTO &amp; Leaflet · Öffnungszeiten/Preise können sich ändern – kurz vorher prüfen.</p>
+</footer>
+
+<!-- MODAL -->
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-bg" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <button class="modal-close" data-close aria-label="Schließen">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const HOTEL = {lat:41.0153, lng:28.9770};
+const W = 'https://commons.wikimedia.org/wiki/Special:FilePath/';
+function img(file, w){ return W + encodeURIComponent(file) + '?width=' + (w||700); }
+const PIN_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>';
+const MAPS_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>';
+
+/* distance helpers */
+function kmFrom(p){
+  const R=6371, toR=Math.PI/180;
+  const dLat=(p.lat-HOTEL.lat)*toR, dLng=(p.lng-HOTEL.lng)*toR;
+  const a=Math.sin(dLat/2)**2 + Math.cos(HOTEL.lat*toR)*Math.cos(p.lat*toR)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function distText(p){
+  const d = kmFrom(p);
+  if(d < 0.35) return 'wenige Schritte vom Hotel';
+  const km = d.toFixed(1).replace('.', ',');
+  if(d <= 2.2) return 'ca. ' + Math.round(d*13) + ' Min. zu Fuß · ' + km + ' km';
+  return km + ' km · mit ' + (p.via || 'Tram/Taxi');
+}
+function distBadge(p){
+  return '<span class="dist">' + PIN_SVG + distText(p) + '</span>';
+}
+function mapsUrl(p){ return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + ' Istanbul'); }
+
+/* ---------- DATA ---------- */
+const restaurants = [
+  {id:'sehzade', name:'Şehzade Cağ Kebap', area:'Sirkeci', for:'Cağ Kebap · Lammspieß', lat:41.0136, lng:28.9772,
+   photo:'Cag Kebab.jpg', cap:'Cağ Kebap',
+   desc:'Liegend am Holzfeuer gegartes Lamm aus Erzurum, frisch am Spieß serviert. Klein, voll, absolut authentisch.',
+   chips:[['Spezialität','Cağ Kebap'],['Stil','Holzfeuer-Spieß'],['Preis','€€']],
+   long:'In einer kleinen Passage in Sirkeci, nur wenige Schritte vom Hotel, gibt es hier den legendären Cağ Kebap: zartes Lamm, langsam am liegenden Holzkohlespieß gegart und in Stücken am Spieß serviert. Man bestellt einfach immer weiter, bis man satt ist. Ein echtes Erlebnis – und unschlagbar nah.'},
+  {id:'hamdi', name:'Hamdi Restaurant', area:'Eminönü', for:'Kebap mit Aussicht', lat:41.0169, lng:28.9706,
+   photo:'Pirzola, pilav and carrots.jpg', cap:'Lammkoteletts',
+   desc:'Klassiker mit traumhaftem Blick aufs Goldene Horn. Pistazienkebap & Co. – perfekt für ein besonderes Abendessen.',
+   chips:[['Spezialität','Pistazienkebap'],['Highlight','Dachterrasse'],['Preis','€€€']],
+   long:'Eines der bekanntesten Kebap-Häuser der Stadt, gleich beim Gewürzbasar. Von der oberen Etage hat man einen herrlichen Blick über das Goldene Horn und die Altstadt. Reservierung für einen Fensterplatz lohnt sich – besonders zum Sonnenuntergang.'},
+  {id:'sultanahmet-kofte', name:'Tarihi Sultanahmet Köftecisi', area:'Sultanahmet', for:'Köfte', lat:41.0083, lng:28.9772,
+   photo:'Şiş köfte - 2.jpg', cap:'Köfte',
+   desc:'Institution seit 1920 – gegrillte Köfte mit Bohnensalat & Pickles. Schnörkellos und richtig gut.',
+   chips:[['Spezialität','Izgara Köfte'],['Seit','1920'],['Preis','€€']],
+   long:'Eine echte Istanbuler Institution mitten in Sultanahmet. Die Karte ist winzig – im Grunde gibt es nur perfekt gegrillte Köfte mit Piyaz (Bohnensalat), scharfen Peperoni und Ayran. Genau das macht es so gut.'},
+  {id:'durumzade', name:'Dürümzade', area:'Beyoğlu', for:'Dürüm (Adana/Tavuk)', lat:41.0309, lng:28.9772, via:'Tram',
+   photo:'Tavuklu dürüm.jpg', cap:'Dürüm',
+   desc:'Der berühmteste Dürüm der Stadt – würziges Fleisch im weichen, über dem Feuer gerösteten Lavaş.',
+   chips:[['Spezialität','Adana Dürüm'],['Bekannt durch','Anthony Bourdain'],['Preis','€']],
+   long:'Ein winziger Laden in einer Seitengasse von Beyoğlu, durch Anthony Bourdain weltberühmt geworden. Das Lavaş-Brot wird über dem Grill kurz geröstet, dann mit saftigem Adana- oder Hähnchen-Kebap gefüllt. Klein, günstig, legendär.'},
+  {id:'zubeyir', name:'Zübeyir Ocakbaşı', area:'Beyoğlu / Taksim', for:'Kuzu Şiş · Adana', lat:41.0360, lng:28.9836, via:'Tram',
+   photo:'2023-01-20 Lamb Shish Kebab.jpg', cap:'Kuzu Şiş Kebap',
+   desc:'Der Top-Tipp für Kuzu Şiş (Lammspieß von der Holzkohle). Man sitzt um den offenen Kupfergrill und schaut zu.',
+   chips:[['Top für','Kuzu Şiş Kebap'],['Auch','Adana, Leber, Meze'],['Preis','€€€']],
+   long:'Für den besten Lammspieß (Kuzu Şiş) von der Holzkohle in Istanbul. Rund um den glühenden Kupfergrill sitzen die Gäste und sehen den Ustas beim Wenden der Spieße zu. Dazu kommen frische Salate, Fladenbrot und großartige Meze wie geräuchertes Auberginenpüree. Lebhaft, herzlich, exzellent – Reservierung empfohlen.'},
+  {id:'antiochia', name:'Antiochia', area:'Beyoğlu (Asmalımescit)', for:'Şiş Et · Meze', lat:41.0299, lng:28.9755, via:'Tram',
+   photo:'Shish kebap (lamb).jpg', cap:'Şiş Et',
+   desc:'Moderne Hatay-Küche: besonders zarter Şiş und lebendige Meze wie Muhammara und Zahter-Salat.',
+   chips:[['Region','Hatay/Antakya'],['Top','Şiş Et, Muhammara'],['Preis','€€€']],
+   long:'Ein modernes Bistro mit Küche aus Antakya (Hatay) im Süden der Türkei. Berühmt für außergewöhnlich zarten Lamm- und Rinder-Şiş und für ungewöhnlich gute, frische Meze. Eine tolle Kombination aus Lammspieß und Vorspeisen-Vielfalt.'},
+  {id:'oz-kilis', name:'Öz Kilis Kebap ve Lahmacun', area:'Fatih', for:'Lahmacun · Spezialkebaps', lat:41.0140, lng:28.9450, via:'Tram',
+   photo:'Mini lahmacun - mini pide.jpg', cap:'Lahmacun',
+   desc:'Dünner, knuspriger Lahmacun und Kebap-Sorten, die es sonst kaum gibt. Hochwertig und fair im Preis.',
+   chips:[['Spezialität','Lahmacun'],['Auch','Oruk, Şiveydiz'],['Preis','€€']],
+   long:'Im historischen Fatih gelegen, bekannt für hauchdünnen Lahmacun und besondere Kebap-Varianten aus Kilis/Gaziantep. Wer Lahmacun liebt, ist hier genau richtig.'},
+  {id:'siirt', name:'Siirt Şeref Büryan', area:'Fatih · Kadınlar Pazarı', for:'Büryan · Perde Pilav', lat:41.0179, lng:28.9558, via:'Tram',
+   photo:'Kaburga a la parrilla.jpg', cap:'Lammrippchen',
+   desc:'Im Erdofen geschmortes Lamm (Büryan), das auf der Zunge zergeht. Ein Stück echtes Anatolien.',
+   chips:[['Spezialität','Büryan Kebap'],['Auch','Perde Pilav'],['Preis','€€']],
+   long:'Am lebhaften Kadınlar Pazarı in Fatih. Spezialität ist Büryan: Lamm, das stundenlang im Erdofen geschmort wird, bis es zart zerfällt. Dazu Perde Pilav (Reis im Teigmantel). Sehr authentisch und bei Einheimischen beliebt.'},
+  {id:'karakoy-lokantasi', name:'Karaköy Lokantası', area:'Karaköy', for:'Meze · Meyhane', lat:41.0237, lng:28.9787,
+   photo:'Ezme, Hummus and Haydari.jpg', cap:'Meze-Auswahl',
+   desc:'Mittags Lokanta, abends lebhafte Meyhane mit wunderbarer Meze-Auswahl. Michelin Bib Gourmand.',
+   chips:[['Stil','Meyhane'],['Top','Meze, frischer Fisch'],['Auszeichnung','Bib Gourmand']],
+   long:'Tagsüber ein klassisches Lokanta mit frisch gekochten Gerichten, abends verwandelt es sich in eine lebhafte Meyhane. Große Auswahl an kalten und warmen Meze, frischer Fisch und ein schöner Rahmen unter türkisfarbenen Fliesen. Großartiges Preis-Leistungs-Verhältnis.'},
+  {id:'giritli', name:'Giritli', area:'Sultanahmet (Cankurtaran)', for:'Meze-Festmahl', lat:41.0042, lng:28.9840,
+   photo:'Ezme, cacık and çoban salata.jpg', cap:'Meze-Tafel',
+   desc:'Kretische Küche mit riesiger Meze-Auswahl – ein ganzes Vorspeisen-Festmahl in einem charmanten Garten.',
+   chips:[['Stil','Meyhane / Kreta'],['Top','viele Meze inklusive'],['Preis','€€€€']],
+   long:'In der Altstadt nahe dem Meer: Giritli serviert ein opulentes Set-Menü, das mit einer enormen Vielfalt an kalten und warmen Meze beginnt – perfekt, wenn man von den Vorspeisen kaum genug bekommen kann. Romantischer Innenhof, oft Live-Musik. Das Meze-Highlight in Hotelnähe.'},
+  {id:'ciya', name:'Çiya Sofrası', area:'Kadıköy (asiat. Seite)', for:'Anatolische Küche · Meze', lat:40.9897, lng:29.0270, via:'Fähre',
+   photo:'Kavurma and flatbread on a saj.jpg', cap:'Kavurma & Saç-Brot',
+   desc:'Berühmt für seltene Regionalgerichte. Man wählt am Tresen – ideal, um viel Verschiedenes zu probieren.',
+   chips:[['Stil','Anatolisch'],['Top','wechselnde Meze'],['Anreise','Fähre + zu Fuß']],
+   long:'Auf der asiatischen Seite in Kadıköy, ein Pilgerort für Feinschmecker. Hier werden fast vergessene Regionalgerichte aus ganz Anatolien gekocht. Am offenen Tresen wählt man sich quer durch die Auswahl – ideal, um viele Meze und Spezialitäten auf einmal zu probieren.'},
+  {id:'karadeniz', name:'Karadeniz Döner (Asım Usta)', area:'Beşiktaş', for:'Döner', lat:41.0428, lng:29.0062, via:'Tram/Taxi',
+   photo:'Doner kebab, Istanbul, Turkey.JPG', cap:'Döner',
+   desc:'Jeden Morgen frisch von Hand geschichteter Döner. Für viele schlicht der beste der Stadt.',
+   chips:[['Spezialität','Döner'],['Stil','klein & legendär'],['Preis','€€']],
+   long:'In Beşiktaş, wo Asım Usta den Dönerspieß jeden Morgen selbst von Hand schichtet. Das Ergebnis: gleichmäßige Textur, perfekte Würze. Oft schnell ausverkauft – früh kommen lohnt sich.'},
+  {id:'van', name:'Van Kahvaltı Evi', area:'Cihangir', for:'Türkisches Frühstück', lat:41.0317, lng:28.9830, via:'Tram',
+   photo:'Çılbır - Cafe Rust 2025-03-31.jpg', cap:'Çılbır – Frühstücksei',
+   desc:'Ein opulentes Kahvaltı-Festmahl mit allem, was dazugehört. Perfekter, gemütlicher Tagesstart.',
+   chips:[['Spezialität','Serpme Kahvaltı'],['Aus','Van (Ostanatolien)'],['Preis','€€']],
+   long:'Das wohl bekannteste Frühstückslokal Istanbuls, mit Spezialitäten aus Van im Osten der Türkei. Erwartet ein riesiges Frühstück mit unzähligen kleinen Tellern: Käse, Honig mit Kaymak, Eier, Oliven, Marmeladen und warmes Brot. Am Wochenende gut früh kommen.'},
+  {id:'gulluoglu', name:'Karaköy Güllüoğlu', area:'Karaköy', for:'Baklava', lat:41.0244, lng:28.9776,
+   photo:'Baklava(1).png', cap:'Baklava',
+   desc:'Das beste Baklava Istanbuls – knusprig, mit Pistazien. Unbedingt mit einem Glas Çay probieren.',
+   chips:[['Spezialität','Baklava'],['Seit','1949'],['Preis','€']],
+   long:'Eine Baklava-Legende in Karaköy. Hauchdünne Teigschichten, viel Pistazie, perfekt gesüßt. Man bestellt am Tresen ein paar Stücke und dazu Çay – ein Muss für alle mit süßem Zahn.'},
+];
+
+const sights = [
+  {id:'ayasofya', name:'Hagia Sophia', area:'Sultanahmet', for:'Das Wahrzeichen', lat:41.0086, lng:28.9802,
+   photo:'Facade of Hagia Sophia.JPG', cap:'Hagia Sophia',
+   desc:'Erst Kirche, dann Moschee, heute wieder Moschee – ein 1.500 Jahre altes Weltwunder.',
+   chips:[['Eintritt','€25'],['Offen','tägl. 9–19 Uhr'],['Dress','Kopftuch, Schuhe aus']],
+   long:'Das Wahrzeichen Istanbuls schlechthin. Über die Jahrhunderte byzantinische Kirche, osmanische Moschee, Museum – und heute wieder aktive Moschee. Im Inneren beeindrucken die gewaltige Kuppel und die byzantinischen Mosaiken in den Obergalerien. Während der Gebetszeiten (v.a. Freitagmittag) für Besucher eingeschränkt – Schultern/Knie bedecken, Kopftuch & Schuhe ausziehen.'},
+  {id:'blue', name:'Blaue Moschee', area:'Sultanahmet', for:'İznik-Kacheln', lat:41.0054, lng:28.9768,
+   photo:'The Blue Mosque.JPG', cap:'Blaue Moschee',
+   desc:'Berühmt für die blauen İznik-Kacheln und ihre sechs Minarette – gegenüber der Hagia Sophia.',
+   chips:[['Eintritt','gratis'],['Offen','außerh. Gebetszeit'],['Achtung','Fr. bis ~14:30 zu']],
+   long:'Die Sultanahmet-Moschee, gebaut 1609–1617, verdankt ihren Beinamen den tausenden blauen İznik-Fliesen im Inneren. Sechs Minarette und eine Kaskade von Kuppeln machen sie von außen unverwechselbar. Eintritt frei; am besten früh morgens oder am späten Nachmittag, außerhalb der Gebetszeiten. Kleiderordnung wie in jeder Moschee.'},
+  {id:'topkapi', name:'Topkapı-Palast', area:'Sultanahmet', for:'Sultanspalast', lat:41.0115, lng:28.9833,
+   photo:'Topkapi Palace Seen From Harem.JPG', cap:'Topkapı-Palast',
+   desc:'Vier Jahrhunderte Residenz der Sultane – Schatzkammer, Harem und Gärten mit Bosporus-Blick.',
+   chips:[['Eintritt','~€45 inkl. Harem'],['Offen','9–18 Uhr'],['Zu','dienstags']],
+   long:'Der prächtige Palast der osmanischen Sultane, hoch über dem Zusammenfluss von Bosporus und Goldenem Horn. Höhepunkte sind die Schatzkammer mit dem berühmten Topkapı-Dolch und dem 86-karätigen Diamanten, der Harem (separater Bereich) und die weitläufigen Gärten. Plane 2–3 Stunden ein. Dienstags geschlossen.'},
+  {id:'cistern', name:'Basilika-Zisterne', area:'Sultanahmet', for:'Unterirdisch', lat:41.0084, lng:28.9779,
+   photo:'Istanbul - Basilica Cistern - 01.JPG', cap:'Basilika-Zisterne',
+   desc:'Ein geheimnisvoller unterirdischer Wasserspeicher mit 336 Säulen – inkl. der Medusa-Köpfe.',
+   chips:[['Offen','täglich'],['Dauer','~45 Min.'],['150 m','von Hagia Sophia']],
+   long:'Ein magischer, kühler Ort direkt unter der Altstadt: ein 1.500 Jahre alter byzantinischer Wasserspeicher mit 336 Marmorsäulen, sanftem Licht und Musik. Am hinteren Ende liegen die berühmten umgedrehten Medusa-Köpfe. Nur 150 m von der Hagia Sophia – perfekt zum Kombinieren.'},
+  {id:'grandbazaar', name:'Großer Basar', area:'Fatih', for:'4.000 Läden', lat:41.0106, lng:28.9680,
+   photo:'Sultanahmet Square Istanbul.jpg', cap:'Altstadt',
+   desc:'Einer der größten überdachten Märkte der Welt: Teppiche, Gold, Keramik, Lampen & mehr.',
+   chips:[['Eintritt','gratis'],['Zu','sonntags'],['Tipp','Handeln!']],
+   long:'Ein riesiges Labyrinth aus über 4.000 Läden unter bemalten Gewölben – seit Jahrhunderten das Handelsherz der Stadt. Hier gibt es Teppiche, Schmuck, Keramik, Lampen, Tee und Gewürze. Handeln gehört dazu: freundlich bleiben, ruhig die Hälfte anbieten. Sonntags geschlossen.'},
+  {id:'spice', name:'Ägyptischer Gewürzbasar', area:'Eminönü', for:'Gewürze & Lokum', lat:41.0165, lng:28.9707,
+   photo:'Golden Horn and Sultanahmet.jpg', cap:'Eminönü',
+   desc:'Der duftende Gewürzbasar – Gewürze, Tee, Lokum & Süßes. Nur wenige Minuten vom Hotel.',
+   chips:[['Eintritt','gratis'],['Nähe','am Hotel'],['Mitbringsel','Lokum & Tee']],
+   long:'Der Mısır Çarşısı (Ägyptischer Basar) direkt in Eminönü, gleich beim Hotel. In den überdachten Gängen türmen sich Gewürze, Tees, getrocknete Früchte, Nüsse und vor allem Lokum (Turkish Delight). Ideal für Mitbringsel und ein Fest für die Nase.'},
+  {id:'suleymaniye', name:'Süleymaniye-Moschee', area:'Fatih', for:'Schönste Moschee', lat:41.0162, lng:28.9639,
+   photo:'Suleymaniye Mosque panorama.jpg', cap:'Süleymaniye',
+   desc:'Für viele die schönste Moschee Istanbuls – mit einem der besten Ausblicke über die Stadt.',
+   chips:[['Eintritt','gratis'],['Offen','außerh. Gebet'],['Bonus','Aussicht']]
+   ,long:'Das Meisterwerk des Architekten Sinan thront auf einem der Hügel der Altstadt. Ruhiger und oft weniger überlaufen als die Blaue Moschee, mit harmonischen Proportionen und einer wunderbaren Terrasse, von der man über das Goldene Horn blickt.'},
+  {id:'galata', name:'Galata-Turm', area:'Beyoğlu', for:'Panoramablick', lat:41.0256, lng:28.9741, via:'Tram',
+   photo:'Galata Tower - Turkey - Istanbul City - Tourist attractions - Monument 06.jpg', cap:'Galata-Turm',
+   desc:'Mittelalterlicher Aussichtsturm mit 360°-Panorama – am schönsten zum Sonnenuntergang.',
+   chips:[['Aussicht','360°'],['Beste Zeit','Sonnenuntergang'],['Lage','Beyoğlu']],
+   long:'Der runde, mittelalterliche Turm überragt das Viertel Galata. Von der Aussichtsplattform reicht der Blick über die ganze Altstadt, das Goldene Horn und den Bosporus. Tickets vorab kaufen, um die Schlange zu sparen; zum Sonnenuntergang besonders schön.'},
+  {id:'galatabridge', name:'Galata-Brücke', area:'Eminönü', for:'Angler & Balık Ekmek', lat:41.0202, lng:28.9737,
+   photo:'Golden Horn and Sultanahmet.jpg', cap:'Goldenes Horn',
+   desc:'Angler reihen sich am Geländer, darunter Boote mit Fischbrötchen – sehr nah am Hotel.',
+   chips:[['Erlebnis','Balık Ekmek'],['Lage','übers Goldene Horn'],['Frei','jederzeit']],
+   long:'Die Brücke über das Goldene Horn verbindet die Altstadt mit Beyoğlu. Oben stehen die Angler dicht an dicht, unten reihen sich Restaurants und die berühmten Balık-Ekmek-Stände. Ein toller Spaziergang – nur wenige Minuten vom Hotel.'},
+  {id:'gulhane', name:'Gülhane-Park', area:'Sultanahmet', for:'Grüne Oase', lat:41.0134, lng:28.9812,
+   photo:'Facade of Hagia Sophia.JPG', cap:'Altstadt',
+   desc:'Schöner, schattiger Park neben dem Topkapı-Palast – ideal für eine ruhige Pause.',
+   chips:[['Eintritt','gratis'],['Lage','am Topkapı'],['Tipp','Frühling: Tulpen']],
+   long:'Einst Teil des Topkapı-Palastgartens, heute ein öffentlicher Park mit alten Bäumen, Blumenbeeten und Bosporus-Blick am Rand. Perfekt, um zwischen den Sehenswürdigkeiten kurz durchzuatmen – im Frühling blühen hier die Tulpen.'},
+  {id:'balat', name:'Balat & Fener', area:'Fatih', for:'Bunte Häuser', lat:41.0294, lng:28.9489, via:'Taxi/Bus',
+   photo:'Golden Horn and Sultanahmet.jpg', cap:'Balat',
+   desc:'Das fotogene Altstadtviertel mit bunten Häusern, Antik-Läden und gemütlichen Cafés.',
+   chips:[['Erlebnis','Bummeln & Cafés'],['Top','Fotomotive'],['Anreise','Taxi/Bus']],
+   long:'Die historischen Viertel Balat und Fener am Goldenen Horn sind bekannt für ihre bunten, eng aneinandergereihten Häuser, alte Kirchen und Synagogen, Antiquitätenläden und kleine Cafés. Eines der schönsten Viertel zum Schlendern und Fotografieren.'},
+  {id:'bosporus', name:'Bosporus-Fahrt', area:'ab Eminönü', for:'Bootstour', lat:41.0185, lng:28.9740,
+   photo:'Golden Horn and Sultanahmet.jpg', cap:'Bosporus',
+   desc:'Die schönste & günstigste Art, die Stadt zu sehen: mit der Fähre zwischen zwei Kontinenten.',
+   chips:[['Start','Eminönü (am Hotel)'],['Preis','günstig'],['Dauer','flexibel']],
+   long:'Eine Fahrt auf dem Bosporus gehört zu Istanbul wie nichts anderes. Die öffentlichen Fähren ab Eminönü – gleich beim Hotel – sind günstig und herrlich: Paläste, Festungen und Villen ziehen vorbei, während man zwischen Europa und Asien schippert. Mit der İstanbulkart einfach einsteigen.'},
+];
+
+const dishes = [
+  {name:'Döner & Dürüm', what:'Fleisch vom Spieß im Fladen', tag:'Dein Favorit', g:'linear-gradient(140deg,#bd4f2a,#8f3a1e)', photo:'Döner kebab.jpg',
+   desc:'Saftiges Fleisch, dünn vom senkrechten Spieß geschnitten – als Teller, im Brot oder als Dürüm (gerollt im Lavaş). Das Original schmeckt anders als alles zu Hause.', bestId:'karadeniz', bestAlt:'oder Dürümzade für den Dürüm'},
+  {name:'Lahmacun', what:'Dünner Teig mit Hackfleisch', g:'linear-gradient(140deg,#a83246,#6f2030)', photo:'Mini lahmacun and mini pide in Ankara.jpg',
+   desc:'Hauchdünner, knuspriger Teig mit würzigem Hackfleisch, Tomate und Kräutern. Mit Petersilie und einem Spritzer Zitrone belegen, zusammenrollen und essen.', bestId:'oz-kilis'},
+  {name:'Adana Kebap', what:'Scharfer Lammspieß, gehackt', tag:'Pflicht', g:'linear-gradient(140deg,#c0532b,#7a2f17)', photo:'Kebab.JPG',
+   desc:'Handgehacktes Lamm, kräftig mit Paprika und Chili gewürzt, von Hand auf flache Spieße geformt und über Holzkohle gegrillt. Feurig und unglaublich aromatisch (die milde Variante heißt Urfa).', bestId:'zubeyir'},
+  {name:'Kuzu Şiş', what:'Lammspieß von der Holzkohle', tag:'Top-Tipp', g:'linear-gradient(140deg,#0e5a63,#08363c)', photo:'Lula kebab 2.jpg',
+   desc:'Zarte Würfel von mariniertem Lamm, auf Spieße gesteckt und über glühender Holzkohle gegrillt – außen rauchig, innen butterzart. Genau dein Lieblingsgericht.', bestId:'zubeyir', bestAlt:'auch sehr gut: Antiochia'},
+  {name:'Meze', what:'Kalte & warme Vorspeisen', tag:'Zum Teilen', g:'linear-gradient(140deg,#1f6f8b,#0e4a5c)', photo:'Ezme and salad.jpg',
+   desc:'Viele kleine Teller zum Teilen: Haydari (Joghurt-Dip), Ezme (scharfe Paste), Auberginenpüree, Hummus, gefüllte Weinblätter, Sigara Böreği, Calamari und mehr. Das Herz eines geselligen Abends.', bestId:'giritli', bestAlt:'oder Karaköy Lokantası'},
+  {name:'Cağ Kebap', what:'Lamm vom liegenden Holzspieß', tag:'Geheimtipp', g:'linear-gradient(140deg,#a07f2f,#6e5417)', photo:'Cag Kebab.jpg',
+   desc:'Lamm, das an einem liegenden Holzkohlespieß langsam gegart und dann in Stücken am Spieß serviert wird – die Spezialität aus Erzurum. Gibt es direkt um die Ecke vom Hotel.', bestId:'sehzade'},
+  {name:'İskender', what:'Döner mit Tomatensauce & Joghurt', g:'linear-gradient(140deg,#b3502f,#7e3219)', photo:'İskender kebap.JPG',
+   desc:'Dönerfleisch auf Fladenbrotstücken, übergossen mit Tomatensauce und zerlassener Butter, dazu Joghurt. Deftig, reichhaltig und herrlich.', bestId:'zubeyir', bestAlt:'in vielen Ocakbaşı erhältlich'},
+  {name:'Köfte', what:'Gegrillte Hackbällchen', g:'linear-gradient(140deg,#9a3a2c,#6a261b)', photo:'Inegol kofte.jpg',
+   desc:'Gewürzte, gegrillte Hackfleischbällchen, meist mit Bohnensalat (Piyaz) und Pickles serviert. Einfach und perfekt.', bestId:'sultanahmet-kofte'},
+  {name:'Balık Ekmek', what:'Fischbrötchen am Wasser', g:'linear-gradient(140deg,#0e5a63,#0a444c)', photo:'Balık Dürüm 01.jpg',
+   desc:'Frisch gegrilltes Fischfilet mit Zwiebeln und Salat im Brot – direkt an der Galata-Brücke, mit Blick aufs Wasser gegessen. Ikonisches Streetfood.', bestId:'galatabridge'},
+  {name:'Türkisches Frühstück', what:'Kahvaltı – das große Festmahl', g:'linear-gradient(140deg,#c8a24c,#90701f)', photo:'Çılbır with duck-fat sautéed Ramps (14826584557).jpg',
+   desc:'Kein einzelnes Gericht, sondern ein Fest aus vielen kleinen Tellern: Käse, Oliven, Tomaten, Gurken, Eier, Honig mit Kaymak, Marmeladen, warmes Brot – und natürlich Çay.', bestId:'van'},
+  {name:'Pide', what:'Türkische „Pizza", bootförmig', g:'linear-gradient(140deg,#b8842f,#7d5618)', photo:'Pide (6377357727).jpg',
+   desc:'Bootförmiges Fladenbrot, frisch belegt mit Käse, Hackfleisch oder Ei und im Ofen gebacken. Knusprig, herzhaft, perfekt zum Teilen.', bestId:'oz-kilis', bestAlt:'auch in vielen Lokalen'},
+  {name:'Baklava', what:'Blätterteig mit Pistazien', tag:'Süßes', g:'linear-gradient(140deg,#8a5a2b,#5e3c18)', photo:'Baklava(1).png',
+   desc:'Knusprige, hauchdünne Teigschichten mit Pistazien und Sirup. Zum Abschluss mit einem Glas Çay – ein Muss.', bestId:'gulluoglu'},
+];
+
+const tips = [
+  {svg:'<path d="M4 6h16v12H4z M2 9h20" stroke="#fff" stroke-width="2" fill="none"/>', t:'Geld & Bezahlen', h:'Karte wird fast überall akzeptiert. Für Basar & Streetfood etwas <b>Bargeld (Lira)</b> dabei haben. Wechseln am besten in offiziellen <b>„Döviz"-Stuben</b> in Eminönü – nicht am Flughafen.'},
+  {svg:'<path d="M5 17a2 2 0 104 0 2 2 0 00-4 0zm10 0a2 2 0 104 0 2 2 0 00-4 0zM3 6h13v9H3z M16 9h3l2 3v3h-5z" stroke="#fff" stroke-width="1.6" fill="none"/>', t:'Unterwegs', h:'Eine <b>İstanbulkart</b> am Automaten kaufen – gilt für Tram, Bus, Metro & Fähre. Die <b>Tram T1</b> hält direkt bei uns (Sirkeci/Eminönü) und fährt durch die ganze Altstadt.'},
+  {svg:'<path d="M12 3l2 5 5 .5-4 3.5 1.5 5L12 19l-4.5 3 1.5-5-4-3.5 5-.5z" stroke="#fff" stroke-width="1.4" fill="none"/>', t:'Moschee-Knigge', h:'Schultern & Knie bedecken, Frauen ein <b>Kopftuch</b> (vor Ort gratis), Schuhe ausziehen. <b>Freitagmittags</b> sind Moscheen für Besucher meist geschlossen.'},
+  {svg:'<path d="M4 4h16v16H4z M8 8h8M8 12h8M8 16h5" stroke="#fff" stroke-width="1.6" fill="none"/>', t:'Handeln gehört dazu', h:'Im Basar wird <b>gefeilscht</b> – freundlich lächeln, ruhig die Hälfte anbieten und sich in der Mitte treffen. Macht Spaß und gehört zur Kultur.'},
+  {svg:'<path d="M7 3h10l-1 18H8z M7 8h10" stroke="#fff" stroke-width="1.6" fill="none"/>', t:'Wasser & Çay', h:'Leitungswasser lieber nicht trinken – <b>Flaschenwasser („su")</b> kaufen. Dafür gibt es überall <b>Çay</b> (Tee), oft gratis. Einfach annehmen, das freut die Gastgeber.'},
+  {svg:'<circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="1.6" fill="none"/><path d="M12 7v5l3 3" stroke="#fff" stroke-width="1.6" fill="none"/>', t:'Schlau planen', h:'Top-Sehenswürdigkeiten <b>früh morgens</b> besuchen. <b>Topkapı</b> ist dienstags zu, der <b>Große Basar</b> sonntags. Trinkgeld im Restaurant ca. <b>5–10 %</b>.'},
+];
+
+/* ---------- RENDER CARDS ---------- */
+function fallbackImg(){ return "this.style.display='none'"; }
+
+const restGrid = document.getElementById('restGrid');
+restaurants.forEach((r,i)=>{
+  const el = document.createElement('button');
+  el.className='card reveal';
+  el.innerHTML = `
+    <div class="card-img">
+      <span class="num">${String(i+1).padStart(2,'0')}</span>
+      <img src="${img(r.photo,600)}" alt="${r.name}" loading="lazy" onerror="${fallbackImg()}">
+      ${distBadge(r)}
+    </div>
+    <div class="card-body">
+      <div class="top"><h3>${r.name}</h3><span class="area">${r.area}</span></div>
+      <div class="for">★ ${r.for}</div>
+      <div class="desc">${r.desc}</div>
+      <span class="open">Details &amp; Karte ›</span>
+    </div>`;
+  el.addEventListener('click', ()=>openRestaurant(r));
+  restGrid.appendChild(el);
+});
+
+const sightGrid = document.getElementById('sightGrid');
+sights.forEach(s=>{
+  const el = document.createElement('button');
+  el.className='card reveal';
+  el.innerHTML = `
+    <div class="card-img">
+      <img src="${img(s.photo,600)}" alt="${s.name}" loading="lazy" onerror="${fallbackImg()}">
+      ${distBadge(s)}
+    </div>
+    <div class="card-body">
+      <div class="top"><h3>${s.name}</h3><span class="area">${s.area}</span></div>
+      <div class="for">★ ${s.for}</div>
+      <div class="desc">${s.desc}</div>
+      <span class="open">Details &amp; Karte ›</span>
+    </div>`;
+  el.addEventListener('click', ()=>openSight(s));
+  sightGrid.appendChild(el);
+});
+
+const dishGrid = document.getElementById('dishGrid');
+dishes.forEach(d=>{
+  const el = document.createElement('button');
+  el.className='dish reveal';
+  el.style.setProperty('--g', d.g);
+  el.innerHTML = `
+    <div class="ph"><img src="${img(d.photo,500)}" alt="${d.name}" loading="lazy" onerror="${fallbackImg()}"></div>
+    ${d.tag?`<span class="star">${d.tag}</span>`:''}
+    <span class="more">+</span>
+    <h3>${d.name}</h3>
+    <p>${d.what}</p>`;
+  el.addEventListener('click', ()=>openDish(d));
+  dishGrid.appendChild(el);
+});
+
+const tipGrid = document.getElementById('tipGrid');
+tips.forEach(t=>{
+  const el = document.createElement('div');
+  el.className='tip reveal';
+  el.innerHTML = `<div class="ti"><svg viewBox="0 0 24 24">${t.svg}</svg></div><div><h3>${t.t}</h3><p>${t.h}</p></div>`;
+  tipGrid.appendChild(el);
+});
+
+/* ---------- MODAL ---------- */
+const modal = document.getElementById('modal');
+const modalContent = document.getElementById('modalContent');
+function openModal(html){
+  modalContent.innerHTML = html;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+  modalContent.parentElement.scrollTop = 0;
+}
+function closeModal(){
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
+modal.addEventListener('click', e=>{ if(e.target.hasAttribute('data-close')) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+function imgHead(file, cap){
+  return `<div class="modal-img"><img src="${img(file,900)}" alt="" onerror="${fallbackImg()}">${cap?`<span class="cap">${cap}</span>`:''}</div>`;
+}
+function mapsButton(p, label){
+  return `<a class="maps-btn" href="${mapsUrl(p)}" target="_blank" rel="noopener">${MAPS_SVG}${label||'Route in Google Maps öffnen'}</a>`;
+}
+function chipsHtml(arr){ return `<div class="chips">${arr.map(c=>`<span><b>${c[0]}</b> ${c[1]}</span>`).join('')}</div>`; }
+
+function openRestaurant(r){
+  openModal(`
+    ${imgHead(r.photo, r.cap)}
+    <div class="modal-body">
+      <div class="area">${r.area}</div>
+      <h2>${r.name}</h2>
+      <div class="row">${distBadge(r)}</div>
+      <div class="for">★ Bekannt für: ${r.for}</div>
+      <p class="txt">${r.long}</p>
+      ${chipsHtml(r.chips)}
+      ${mapsButton(r)}
+    </div>`);
+}
+function openSight(s){
+  openModal(`
+    ${imgHead(s.photo, s.cap)}
+    <div class="modal-body">
+      <div class="area">${s.area}</div>
+      <h2>${s.name}</h2>
+      <div class="row">${distBadge(s)}</div>
+      <p class="txt">${s.long}</p>
+      ${chipsHtml(s.chips)}
+      ${mapsButton(s)}
+    </div>`);
+}
+function openDish(d){
+  const r = restaurants.find(x=>x.id===d.bestId) || sights.find(x=>x.id===d.bestId);
+  let bestBlock = '';
+  if(r){
+    bestBlock = `
+      <div class="best">
+        <div class="bl">Am besten essen bei</div>
+        <div class="bn">${r.name}</div>
+        <div class="row">${distBadge(r)}<span class="dist" style="background:rgba(189,79,42,.1);border-color:rgba(189,79,42,.25);color:var(--terra-dk)">${r.area}</span></div>
+        ${d.bestAlt?`<p style="font-size:.85rem;color:var(--ink-soft);margin-top:8px">${d.bestAlt}</p>`:''}
+      </div>
+      ${mapsButton(r, 'Restaurant in Google Maps')}`;
+  }
+  openModal(`
+    ${imgHead(d.photo, d.name)}
+    <div class="modal-body">
+      <div class="area">Gericht</div>
+      <h2>${d.name}</h2>
+      <p class="txt">${d.desc}</p>
+      ${bestBlock}
+    </div>`);
+}
+
+/* ---------- MAP ---------- */
+const placeOf = {};
+const mapPoints = [{cat:'hotel', obj:{name:'Ottoman Legacy Hotel', area:'Sirkeci, Altstadt', lat:HOTEL.lat, lng:HOTEL.lng, long:'Unser Hotel – mitten in der Altstadt, wenige Minuten von Gewürzbasar, Galata-Brücke und Eminönü-Fähren.', chips:[['Lage','Sirkeci'],['Nähe','Gewürzbasar, Fähren']], photo:'The Blue Mosque.JPG', cap:'Altstadt'}}];
+restaurants.forEach(r=>mapPoints.push({cat:'food', obj:r}));
+sights.forEach(s=>mapPoints.push({cat:'sight', obj:s}));
+
+const colors = {hotel:'#c8a24c', food:'#bd4f2a', sight:'#0e5a63'};
+
+const map = L.map('map',{scrollWheelZoom:false}).setView([41.014, 28.978], 14);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+  maxZoom:20, attribution:'© OpenStreetMap, © CARTO', subdomains:'abcd'
+}).addTo(map);
+
+function pinIcon(cat){
+  return L.divIcon({className:'', html:`<div class="pin ${cat==='hotel'?'hotel':''}" style="background:${colors[cat]}"></div>`,
+    iconSize:[30,30], iconAnchor:[15,30], popupAnchor:[0,-28]});
+}
+
+let line = null;
+const markers = [];
+mapPoints.forEach(pt=>{
+  const o = pt.obj;
+  const m = L.marker([o.lat,o.lng],{icon:pinIcon(pt.cat)}).addTo(map);
+  m._cat = pt.cat; m._obj = o;
+  const d = pt.cat==='hotel' ? 'Mittelpunkt' : distText(o);
+  const detailBtn = (pt.cat==='food') ? `<button class="pri" onclick="window._openR('${o.id}')">Details</button>`
+                  : (pt.cat==='sight') ? `<button class="pri" onclick="window._openS('${o.id}')">Details</button>` : '';
+  m.bindPopup(`<span class="pop-t">${o.name}</span>
+    <div class="pop-d">${distBadge({lat:o.lat,lng:o.lng,via:o.via,name:o.name}).replace(distText({lat:o.lat,lng:o.lng,via:o.via}), d)}</div>
+    <div class="pop-btns">${detailBtn}<a href="${mapsUrl(o)}" target="_blank" rel="noopener">Route</a></div>`);
+  m.on('popupopen', ()=>{
+    if(pt.cat==='hotel') return;
+    if(line) map.removeLayer(line);
+    line = L.polyline([[HOTEL.lat,HOTEL.lng],[o.lat,o.lng]], {color:'#c8a24c', weight:3, dashArray:'2,8', opacity:.9}).addTo(map);
+  });
+  m.on('popupclose', ()=>{ if(line){ map.removeLayer(line); line=null; } });
+  markers.push(m);
+});
+window._openR = id => { closePopups(); openRestaurant(restaurants.find(r=>r.id===id)); };
+window._openS = id => { closePopups(); openSight(sights.find(s=>s.id===id)); };
+function closePopups(){ map.closePopup(); }
+
+const allGroup = L.featureGroup(markers);
+map.fitBounds(allGroup.getBounds().pad(0.12));
+
+document.querySelectorAll('.filt').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.filt').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const cat = b.dataset.cat;
+    const shown=[];
+    markers.forEach(m=>{
+      const show = (cat==='all'||m._cat===cat||m._cat==='hotel');
+      if(show){ m.addTo(map); shown.push(m); } else { map.removeLayer(m); }
+    });
+    if(shown.length) map.fitBounds(L.featureGroup(shown).getBounds().pad(0.14));
+  });
+});
+setTimeout(()=>map.invalidateSize(), 300);
+
+/* ---------- REVEAL ---------- */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach((e,i)=>{
+    if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('in'), Math.min(i*55,220)); io.unobserve(e.target); }
+  });
+},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
